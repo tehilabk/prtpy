@@ -6,6 +6,7 @@ Authors: Avshalom Avraham & Tehila Ben-Kalifa
 Since: 05-2022
 """
 import math
+import concurrent.futures
 from itertools import combinations, product
 from typing import List, Iterable
 import logging
@@ -189,6 +190,23 @@ def is_dominant(list1: List, list2: List):
 
     return False
 
+def find_dominated_completions(completions: List, index: int):
+    list1 = completions[index]
+    dominated_completions = []
+
+    for j in range(index+1, len(completions)):
+        list2 = completions[j]
+
+        # If list1 dominates list2 - append list2 to the dominated completions and continue to the next iteration
+        if is_dominant(list1, list2):
+            dominated_completions.append(list2)
+            continue
+
+        # Else - if list2 dominates list1 - append list1 to the dominated completions and break (for a new list1)
+        if is_dominant(list2, list1):
+            dominated_completions.append(list1)
+            break
+    return dominated_completions
 
 
 def check_for_dominance(completions: List[List]):
@@ -217,25 +235,31 @@ def check_for_dominance(completions: List[List]):
     # We are going to collect all the dominated completions and then remove them from the original completion list
     dominated_completions = []
 
-    for i in range(len(completions) - 1):
-        list1 = completions[i]
-        if list1 in dominated_completions:
-            continue
+    with concurrent.futures.ThreadPoolExecutor(10) as executor:
+        futures = [executor.submit(find_dominated_completions, completions, i) for i in range(len(completions))]
+        for res in concurrent.futures.as_completed(futures):
+            if res.result():
+                dominated_completions.extend(res.result())
 
-        for j in range(i+1, len(completions)):
-            list2 = completions[j]
-            if list2 in dominated_completions:
-                continue
-
-            # If list1 dominates list2 - append list2 to the dominated completions and continue to the next iteration
-            if is_dominant(list1, list2):
-                dominated_completions.append(list2)
-                continue
-
-            # Else - if list2 dominates list1 - append list1 to the dominated completions and break (for a new list1)
-            if is_dominant(list2, list1):
-                dominated_completions.append(list1)
-                break
+    # for i in range(len(completions) - 1):
+    #     list1 = completions[i]
+    #     if list1 in dominated_completions:
+    #         continue
+    #
+    #     for j in range(i+1, len(completions)):
+    #         list2 = completions[j]
+    #         if list2 in dominated_completions:
+    #             continue
+    #
+    #         # If list1 dominates list2 - append list2 to the dominated completions and continue to the next iteration
+    #         if is_dominant(list1, list2):
+    #             dominated_completions.append(list2)
+    #             continue
+    #
+    #         # Else - if list2 dominates list1 - append list1 to the dominated completions and break (for a new list1)
+    #         if is_dominant(list2, list1):
+    #             dominated_completions.append(list1)
+    #             break
 
             # If list1 nor list1 is dominated - continue for the next list2 without doing anything
 
@@ -361,7 +385,7 @@ def find_bin_completions(x: int, items: List, binsize: int):
                 found_completions.append(list(fc))
 
     # Create all possible completions without duplicates, sorted in descending order by their sum.
-    uniq_lst = unique_list(sorted(found_completions, key=sum, reverse=True))
+    uniq_lst = sorted(unique_list(found_completions), key=sum, reverse=True)
 
     # Return the result after checking for dominance between the possible completions
     return check_for_dominance(uniq_lst)

@@ -5,13 +5,17 @@
     Authors: Avshalom Avraham & Tehila Ben-Kalifa
     Since: 05-2022
 """
-
+import random
+import time
 from typing import Callable, Any
+
+import numpy.random
+
 from prtpy.packing import best_fit
 from prtpy.packing.bc_utilities import *
-from functools import partial
 import copy
 from prtpy.bins import BinsKeepingContents
+from numpy.random import seed, randint
 
 def bin_completion(
         bins: Bins,
@@ -163,3 +167,24 @@ if __name__ == "__main__":
     import doctest
 
     print(doctest.testmod())
+    print()
+
+    results = []
+
+    size = 5
+    for _ in range(5):
+        items = []
+        for i in range(size):
+            items.append(random.randint(0, 100))
+
+        start = time.perf_counter()
+        bin_completion(BinsKeepingContents(), 100, items)
+        finish = time.perf_counter()
+
+        results.append(round(finish-start,2))
+        size += 5
+
+    print(results)
+
+
+
