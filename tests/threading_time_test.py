@@ -41,7 +41,6 @@ if __name__ == "__main__":
             print(f"Finished {len(items)} items in {t_result} seconds.")
             results.append(t_result)
 
-    print(f"Test: {len(inputs)} and {len(results)}")
     x = [len(input) for input in inputs]
     plt.plot(x, results)
     plt.xlabel("Input Size")
