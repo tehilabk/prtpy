@@ -5,6 +5,7 @@ See "bin_completion.py" for more details.
 Authors: Avshalom Avraham & Tehila Ben-Kalifa
 Since: 05-2022
 """
+import concurrent.futures
 import math
 from itertools import combinations, product
 from typing import List, Iterable
@@ -131,7 +132,7 @@ def check_fits(items: List[int], arrangement: List[List]):
     return True
 
 
-def is_dominant(list1: List, list2: List):
+def is_dominant(list1: List, list2: List, improve: bool):
     """
             Test 1:
             >>> is_dominant([10], [])
@@ -183,15 +184,25 @@ def is_dominant(list1: List, list2: List):
 
     # Create all possible arrangements of list2 in len(list1) 'bins'.
     # If found an arrangement that can be fitted perfectly in list1 items (assuming each item is a bin) - return True
-    for arrangement in find_all_bin_arrangements(list2, len(list1)):
-        if check_fits(list1, arrangement):
-            return True
 
-    return False
-
+    if improve:
+        with concurrent.futures.ThreadPoolExecutor(10) as executor:
+            futures = [executor.submit(check_fits, list1, arrangement) for arrangement in find_all_bin_arrangements(list2, len(list1))]
 
 
-def check_for_dominance(completions: List[List]):
+            for res in concurrent.futures.as_completed(futures):  # return each result as soon as it is completed:
+                if res.result():
+                    return True
+
+        return False
+
+    else:
+        for arrangement in find_all_bin_arrangements(list1, len(list1)):
+            if check_fits(list1, arrangement):
+                return True
+        return False
+
+def check_for_dominance(completions: List[List], improve:bool):
     """
             Test 1:
             >>> check_for_dominance([[3], [2], [1]])
@@ -228,12 +239,12 @@ def check_for_dominance(completions: List[List]):
                 continue
 
             # If list1 dominates list2 - append list2 to the dominated completions and continue to the next iteration
-            if is_dominant(list1, list2):
+            if is_dominant(list1, list2, improve):
                 dominated_completions.append(list2)
                 continue
 
             # Else - if list2 dominates list1 - append list1 to the dominated completions and break (for a new list1)
-            if is_dominant(list2, list1):
+            if is_dominant(list2, list1, improve):
                 dominated_completions.append(list1)
                 break
 
@@ -288,7 +299,7 @@ def find_undominated_pairs(constant_elements_sum: int, y: int, items: List, bins
 
 # Returns all the possible completions of undominated items for the bin containing x.
 # See article for details.
-def find_bin_completions(x: int, items: List, binsize: int):
+def find_bin_completions(x: int, items: List, binsize: int, improve: bool):
     """
         Test 1:
         >>> find_bin_completions(99, [94,79,64,50,44,43,37,32,19,18,7,3], 100)
@@ -364,10 +375,12 @@ def find_bin_completions(x: int, items: List, binsize: int):
     uniq_lst = unique_list(sorted(found_completions, key=sum, reverse=True))
 
     # Return the result after checking for dominance between the possible completions
-    return check_for_dominance(uniq_lst)
+    return check_for_dominance(uniq_lst, improve)
 
 
 if __name__ == "__main__":
     import doctest
 
     print(doctest.testmod())
+
+

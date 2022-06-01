@@ -5,19 +5,23 @@
     Authors: Avshalom Avraham & Tehila Ben-Kalifa
     Since: 05-2022
 """
-
+import time
 from typing import Callable, Any
 from prtpy.packing import best_fit
 from prtpy.packing.bc_utilities import *
 from functools import partial
 import copy
 from prtpy.bins import BinsKeepingContents
+import numpy as np
 
 def bin_completion(
         bins: Bins,
         binsize: float,
         items: List[any],
+        improve: bool,
         valueof: Callable[[Any], float] = lambda x: x
+
+
 ) -> Bins:
     """
     "A New Algorithm for Optimal Bin Packing", by Richard E. Korf (2002).
@@ -91,7 +95,7 @@ def bin_completion(
             # Now we consider all items except for x.
             # We generate all possible completions for the bin containing x, sorted by their sum in descending order.
             updated_list = cb.items[1:]
-            possible_undominated_completions = find_bin_completions(x, updated_list, binsize)
+            possible_undominated_completions = find_bin_completions(x, updated_list, binsize, improve)
 
             # If we found only 1 possible completion - we add it to the bin and remove it from the updated item list.
             if len(possible_undominated_completions) == 1:
@@ -160,6 +164,17 @@ def bin_completion(
 
 
 if __name__ == "__main__":
-    import doctest
-
-    print(doctest.testmod())
+    # import doctest
+    #
+    # print(doctest.testmod())
+    result = []
+    size = 7
+    for _ in range(10):
+        items = []
+        for i in range(size):
+            items.append(math.ceil(np.random.uniform(low=0, high=100)))
+        start = time.perf_counter()
+        bin_completion(BinsKeepingContents(), 100, items,False)
+        finish = time.perf_counter()
+        print((round(finish-start, 2)))
+        size +=4
