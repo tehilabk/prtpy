@@ -5,6 +5,7 @@
     Authors: Avshalom Avraham & Tehila Ben-Kalifa
     Since: 05-2022
 """
+import math
 import random
 import time
 from typing import Callable, Any
@@ -15,7 +16,6 @@ from prtpy.packing import best_fit
 from prtpy.packing.bc_utilities import *
 import copy
 from prtpy.bins import BinsKeepingContents
-from numpy.random import seed, randint
 
 def bin_completion(
         bins: Bins,
@@ -68,10 +68,10 @@ def bin_completion(
     lb = lower_bound(binsize, items)
 
     # If the BFD solution is optimal - return it.
-    if bfd_solution.num == lb:
-        logging.info(f"BFD has returned an optimal solution with {lb} bins.")
-        bins = bfd_solution
-        return bfd_solution
+    # if bfd_solution.num == lb:
+    #     logging.info(f"BFD has returned an optimal solution with {lb} bins.")
+    #     bins = bfd_solution
+    #     return bfd_solution
 
     # We keep the BFD solution as the best solution so far and sort the items in descending order.
     best_solution_so_far = bfd_solution
@@ -169,22 +169,6 @@ if __name__ == "__main__":
     print(doctest.testmod())
     print()
 
-    results = []
-
-    size = 5
-    for _ in range(5):
-        items = []
-        for i in range(size):
-            items.append(random.randint(0, 100))
-
-        start = time.perf_counter()
-        bin_completion(BinsKeepingContents(), 100, items)
-        finish = time.perf_counter()
-
-        results.append(round(finish-start,2))
-        size += 5
-
-    print(results)
 
 
 
