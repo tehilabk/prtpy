@@ -38,7 +38,7 @@ if __name__ == "__main__":
             finish = time.perf_counter()
 
             t_result = round(finish - start, 2)
-            print(f"Done in {t_result}")
+            print(f"Finished {len(items)} items in {t_result} seconds.")
             results.append(t_result)
 
     print(f"Test: {len(inputs)} and {len(results)}")
@@ -47,4 +47,5 @@ if __name__ == "__main__":
     plt.xlabel("Input Size")
     plt.ylabel("Time (s)")
     plt.show()
-    print(results)
+    print(f"Input Sizes = {x}")
+    print(f"Results = {results}")

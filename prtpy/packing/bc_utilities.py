@@ -38,6 +38,7 @@ def unique_list(lst: List) -> List:
     for element in lst:
         if element not in output:
             output.append(element)
+
     return output
 
 
@@ -111,6 +112,7 @@ def l3_lower_bound(binsize: float, items: List) -> float:
 # A function that creates all possible arrangements of items in 'num_of_sublists' lists.
 # For example: find_all_bin_arrangements(range(2), 2) => [[0,1],[]], [[0],[1]], [[1], [0]], etc......
 def find_all_bin_arrangements(items: List, num_of_sublists: int):
+
     for locs in product(range(num_of_sublists), repeat=len(items)):
         output = [[] for _ in range(num_of_sublists)]
         for elem, loc in zip(items, locs):
@@ -166,7 +168,6 @@ def is_dominant(list1: List, list2: List):
             >>> is_dominant([9,7,3,1], [10,8,6,4,2])
             False
         """
-
     # If list2 is empty - everything dominates it. return True.
     # If list2 is NOT empty and list1 IS empty - list1 can't dominate list2. return False.
     if not list2:
@@ -191,6 +192,7 @@ def is_dominant(list1: List, list2: List):
     return False
 
 def find_dominated_completions(completions: List, index: int):
+
     list1 = completions[index]
     dominated_completions = []
 
@@ -206,6 +208,7 @@ def find_dominated_completions(completions: List, index: int):
         if is_dominant(list2, list1):
             dominated_completions.append(list1)
             break
+
     return dominated_completions
 
 
@@ -235,36 +238,37 @@ def check_for_dominance(completions: List[List]):
     # We are going to collect all the dominated completions and then remove them from the original completion list
     dominated_completions = []
 
-    with concurrent.futures.ThreadPoolExecutor(10) as executor:
-        futures = [executor.submit(find_dominated_completions, completions, i) for i in range(len(completions))]
-        for res in concurrent.futures.as_completed(futures):
-            if res.result():
-                dominated_completions.extend(res.result())
+    # with concurrent.futures.ThreadPoolExecutor(12) as executor:
+    #     futures = [executor.submit(find_dominated_completions, completions, i) for i in range(len(completions))]
+    #     for res in concurrent.futures.as_completed(futures):
+    #         if res.result():
+    #             dominated_completions.extend(res.result())
 
-    # for i in range(len(completions) - 1):
-    #     list1 = completions[i]
-    #     if list1 in dominated_completions:
-    #         continue
-    #
-    #     for j in range(i+1, len(completions)):
-    #         list2 = completions[j]
-    #         if list2 in dominated_completions:
-    #             continue
-    #
-    #         # If list1 dominates list2 - append list2 to the dominated completions and continue to the next iteration
-    #         if is_dominant(list1, list2):
-    #             dominated_completions.append(list2)
-    #             continue
-    #
-    #         # Else - if list2 dominates list1 - append list1 to the dominated completions and break (for a new list1)
-    #         if is_dominant(list2, list1):
-    #             dominated_completions.append(list1)
-    #             break
+    for i in range(len(completions) - 1):
+        list1 = completions[i]
+        if list1 in dominated_completions:
+            continue
+
+        for j in range(i+1, len(completions)):
+            list2 = completions[j]
+            if list2 in dominated_completions:
+                continue
+
+            # If list1 dominates list2 - append list2 to the dominated completions and continue to the next iteration
+            if is_dominant(list1, list2):
+                dominated_completions.append(list2)
+                continue
+
+            # Else - if list2 dominates list1 - append list1 to the dominated completions and break (for a new list1)
+            if is_dominant(list2, list1):
+                dominated_completions.append(list1)
+                break
 
             # If list1 nor list1 is dominated - continue for the next list2 without doing anything
 
     # Remove dominated lists from completions and return them ordered by their sum.
     output_list = list_without_items(completions, dominated_completions)
+
     return sorted(output_list, key=sum, reverse=True)
 
 
@@ -292,6 +296,7 @@ def find_undominated_pairs(constant_elements_sum: int, y: int, items: List, bins
             >>> find_undominated_pairs(44, 43, [43,37,18,7], 100)
             [[43, 7], [37, 18]]
         """
+
     start = 0
     end = len(items) - 1
     undominated_pairs = []
@@ -308,6 +313,35 @@ def find_undominated_pairs(constant_elements_sum: int, y: int, items: List, bins
             end -= 1
 
     return undominated_pairs
+
+
+def get_completion_by_size(x: int, y: int, items: List, binsize: int, combination_size: int):
+    found_completions = []
+    feasible_completions = filter(lambda s: x + sum(s) <= binsize, combinations(items, combination_size))
+
+    # For every subset that fits the bin containing x, we find undominated pair of items to add to our completions.
+    # When we take subset of size 1 and find a pair, it's like finding a triplet.
+    # When we take subset of size 2 and find a pair, it's like finding a quadruple etc.
+
+    for fc in feasible_completions:
+        constant_elements_sum = x + sum(fc)
+        items_left = list_without_items(items, fc)
+        undominated_pairs = find_undominated_pairs(constant_elements_sum, y, items_left, binsize)
+
+        # We add the undominated pairs to possible completions.
+        # if none were found - we add the subset fc as a possible completions.
+        if undominated_pairs:
+            # We unite each pair with the constant elements we found.
+            for pair in undominated_pairs:
+                pair.extend(fc)
+                pair.sort(reverse=True)
+                found_completions.append(pair)
+            found_completions.extend(undominated_pairs)
+
+        elif fc:
+            # If we found a correct completion with no other undominated pairs - we add it to our list
+            found_completions.append(list(fc))
+    return found_completions
 
 
 # Returns all the possible completions of undominated items for the bin containing x.
@@ -342,6 +376,7 @@ def find_bin_completions(x: int, items: List, binsize: int):
         >>> find_bin_completions(85, [5, 4, 3, 2, 1], 100)
         [[5, 4, 3, 2, 1]]
     """
+
     # No more items to add.
     if not items:
         logging.info(f"Items list is empty.")
@@ -358,37 +393,55 @@ def find_bin_completions(x: int, items: List, binsize: int):
     # The largest element is always undominated because no other element can contain it.
     found_completions = [[y]]
 
+    with concurrent.futures.ThreadPoolExecutor(12) as executor:
+        futures = [executor.submit(get_completion_by_size, x, y, items, binsize, comb_size) for comb_size in range(len(items)+1)]
+        for res in concurrent.futures.as_completed(futures):
+            if found_completions:
+                found_completions.extend(res.result())
+
+
     # We go through all combinations of items subsets of all sizes, that fits the bin containing x.
-    for i in range(len(items) + 1):
-        feasible_completions = filter(lambda s: x + sum(s) <= binsize, combinations(items, i))
+    # for i in range(len(items) + 1):
+    #     print(f"started feasible_completions")
+    #
+    #
+    #
+    #     feasible_completions = filter(lambda s: x + sum(s) <= binsize, combinations(items, i))
+    #     print(f"finished feasible_completions")
+    #
+    #     # For every subset that fits the bin containing x, we find undominated pair of items to add to our completions.
+    #     # When we take subset of size 1 and find a pair, it's like finding a triplet.
+    #     # When we take subset of size 2 and find a pair, it's like finding a quadruple etc.
+    #     print(f"started fc loop with {len(feasible_completions)} completions")
+    #
+    #     for fc in feasible_completions:
+    #         constant_elements_sum = x + sum(fc)
+    #         items_left = list_without_items(items, fc)
+    #         undominated_pairs = find_undominated_pairs(constant_elements_sum, y, items_left, binsize)
+    #
+    #         # We add the undominated pairs to possible completions.
+    #         # if none were found - we add the subset fc as a possible completions.
+    #         if undominated_pairs:
+    #             # We unite each pair with the constant elements we found.
+    #             for pair in undominated_pairs:
+    #                 pair.extend(fc)
+    #                 pair.sort(reverse=True)
+    #                 found_completions.append(pair)
+    #             found_completions.extend(undominated_pairs)
+    #
+    #         elif fc:
+    #             # If we found a correct completion with no other undominated pairs - we add it to our list
+    #             found_completions.append(list(fc))
+    #     print(f"finished fc loop")
 
-        # For every subset that fits the bin containing x, we find undominated pair of items to add to our completions.
-        # When we take subset of size 1 and find a pair, it's like finding a triplet.
-        # When we take subset of size 2 and find a pair, it's like finding a quadruple etc.
-        for fc in feasible_completions:
-            constant_elements_sum = x + sum(fc)
-            items_left = list_without_items(items, fc)
-            undominated_pairs = find_undominated_pairs(constant_elements_sum, y, items_left, binsize)
-
-            # We add the undominated pairs to possible completions.
-            # if none were found - we add the subset fc as a possible completions.
-            if undominated_pairs:
-                # We unite each pair with the constant elements we found.
-                for pair in undominated_pairs:
-                    pair.extend(fc)
-                    pair.sort(reverse=True)
-                    found_completions.append(pair)
-                found_completions.extend(undominated_pairs)
-
-            elif fc:
-                # If we found a correct completion with no other undominated pairs - we add it to our list
-                found_completions.append(list(fc))
 
     # Create all possible completions without duplicates, sorted in descending order by their sum.
     uniq_lst = sorted(unique_list(found_completions), key=sum, reverse=True)
 
     # Return the result after checking for dominance between the possible completions
-    return check_for_dominance(uniq_lst)
+    filtered_by_dominance = check_for_dominance(uniq_lst)
+
+    return filtered_by_dominance
 
 
 if __name__ == "__main__":
